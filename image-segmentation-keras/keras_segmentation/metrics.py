@@ -4,6 +4,7 @@ EPS = 1e-12
 
 def get_iou(gt, pr, n_classes=8):
     class_wise = np.zeros(n_classes)
+    # gt, pr = gt[:, :, 1:-1], pr[:, :, 1:-1]
     for cl in range(n_classes):
         intersection = np.sum((gt == cl)*(pr == cl))
         union = np.sum(np.maximum((gt == cl), (pr == cl)))

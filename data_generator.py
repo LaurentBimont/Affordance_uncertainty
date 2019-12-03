@@ -2,15 +2,15 @@ import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import numpy as np
 from scipy import misc
-import scipy.io
-import skimage.transform as trans
+# import scipy.io
+# import skimage.transform as trans
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import os
-
-im = misc.imread('myers/part-affordance-dataset/tools/bowl_01/bowl_01_00000001_rgb.jpg')
-lab = scipy.io.loadmat('myers/part-affordance-dataset/tools/bowl_01/bowl_01_00000001_label.mat')['gt_label']
-lab_comp = scipy.io.loadmat('myers/part-affordance-dataset/tools/bowl_01/bowl_01_00000001_label_rank.mat')['gt_label']
+#
+# im = misc.imread('myers/part-affordance-dataset/tools/bowl_01/bowl_01_00000001_rgb.jpg')
+# lab = scipy.io.loadmat('myers/part-affordance-dataset/tools/bowl_01/bowl_01_00000001_label.mat')['gt_label']
+# lab_comp = scipy.io.loadmat('myers/part-affordance-dataset/tools/bowl_01/bowl_01_00000001_label_rank.mat')['gt_label']
 
 # Création des données labellisées
 def create_folder(training=True):
@@ -150,10 +150,11 @@ pound = [60, 40, 222]  # Bleu
 support = [128, 128, 0]  # Vert terre
 wrapgrasp = [192, 128, 128]  # Rose
 unlabelled = [0, 0, 0]  # Noir
+nodecision = [255, 255, 255]  # White
 
-color_dict = np.array([unlabelled, grasp, cut, scoop, contain, pound, support, wrapgrasp])
+color_dict = np.array([unlabelled, grasp, cut, scoop, contain, pound, support, wrapgrasp, nodecision])
 
-def plot_legend_color():
+def plot_legend_color(out):
 
     grasp_patch = mpatches.Patch(color=np.array(grasp)/255, label='grasp')
     cut_patch = mpatches.Patch(color=np.array(cut)/255, label='cut')
@@ -163,15 +164,21 @@ def plot_legend_color():
     support_patch = mpatches.Patch(color=np.array(support)/255, label='support')
     wrapgrasp_patch = mpatches.Patch(color=np.array(wrapgrasp)/255, label='wrapgrasp')
     unlabelled_patch = mpatches.Patch(color=np.array(unlabelled)/255, label='unlabelled')
+    nodecision_patch = mpatches.Patch(color=np.array(nodecision)/255, label='no decision')
 
-    plt.legend(handles=[grasp_patch, cut_patch,scoop_patch, contain_patch, pound_patch, support_patch, wrapgrasp_patch, unlabelled_patch])
-    return([grasp_patch, cut_patch,scoop_patch, contain_patch, pound_patch, support_patch, wrapgrasp_patch, unlabelled_patch])
+    general_handles = [grasp_patch, cut_patch, scoop_patch, contain_patch, pound_patch, support_patch, wrapgrasp_patch, nodecision_patch]
+    custom_handle = []
+    for i in range(len(general_handles)):
+        if i+1 in out:
+            custom_handle.append(general_handles[i])
+    plt.legend(handles=custom_handle)
+    return custom_handle
+
 def labelVisualize(label):
     ## Définition des couleurs
 
     label = label[:, :, 0] if len(label.shape) == 3 else label
     img_out = np.zeros(label.shape + (3,))
-    print(color_dict.shape[0])
     for i in range(color_dict.shape[0]):
         img_out[label == i, :] = color_dict[i]
     return img_out / 255

@@ -14,6 +14,7 @@ def test_ensemble(model_arch=None, n_classes=8, save_folder='ensemble_default/',
                         checkpoints_path="/tmp/vgg_unet_1", epochs=5,
                         verify_dataset=False,
                         weights=weights)
+
             if not os.path.exists('model_saved/' + save_folder):
                 os.mkdir('model_saved/' + save_folder)
             model.save_weights('model_saved/' + save_folder + save_file.format(i))
