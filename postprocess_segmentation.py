@@ -6,8 +6,6 @@ import cv2
 from myfunction import plot_decision_or_not, plot_raw_decision, plot_CRF
 from myfunction import precision, get_mean_iou, precision_recall_curve
 
-
-
 type_unc = 'bayesian'    # ensembliste
 
 for i in range(11):

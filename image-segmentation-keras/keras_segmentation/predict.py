@@ -14,6 +14,7 @@ from .models.config import IMAGE_ORDERING
 from .metrics import weighted_F
 
 import six
+import time
 
 random.seed(DATA_LOADER_SEED)
 
@@ -66,7 +67,6 @@ def predict_ensembliste(model, model_file=None, save_folder=None, inp=None, out_
         x = get_image_array(inp, input_width, input_height, ordering=IMAGE_ORDERING)
         tirage.append(model.predict(np.array([x]))[0])
 
-    print('Ma shape ', np.array(tirage).shape)
     pr_pre = np.mean(np.array(tirage), axis=0)
     pr_pre = pr_pre.reshape((output_height, output_width, n_classes))
     pr = pr_pre.argmax(axis=2)
@@ -135,7 +135,9 @@ def predict(model=None, inp=None, out_fname=None, checkpoints_path=None):
 
     x = get_image_array(inp, input_width, input_height, ordering=IMAGE_ORDERING)
     pr = model.predict(np.array([x]))[0]
-    pr = pr.reshape((output_height,  output_width, n_classes)).argmax(axis=2)
+    pr = pr.reshape((output_height, output_width, n_classes))
+    pr = pr.argmax(axis=2)
+    pr_max = pr.max(axis=2)
 
     seg_img = np.zeros((output_height, output_width, 3))
     colors = class_colors
@@ -149,8 +151,7 @@ def predict(model=None, inp=None, out_fname=None, checkpoints_path=None):
 
     if out_fname is not None:
         cv2.imwrite(out_fname, seg_img)
-
-    return pr
+    return pr, pr_max
 
 def predict_multiple(model=None, inps=None, inp_dir=None, out_dir=None,
                      checkpoints_path=None):
@@ -186,8 +187,8 @@ def evaluate(model=None, inp_images=None, annotations=None, inp_images_dir=None,
         model = model_from_checkpoint_path(checkpoints_path)
 
     if inp_images is None:
-        assert (inp_images_dir is not None), "Please privide inp_images or inp_images_dir"
-        assert (annotations_dir is not None), "Please privide inp_images or inp_images_dir"
+        assert (inp_images_dir is not None), "Please provide inp_images or inp_images_dir"
+        assert (annotations_dir is not None), "Please provide inp_images or inp_images_dir"
         
         paths = get_pairs_from_paths(inp_images_dir, annotations_dir)
         paths = list(zip(*paths))
@@ -201,13 +202,13 @@ def evaluate(model=None, inp_images=None, annotations=None, inp_images_dir=None,
     fn = np.zeros(model.n_classes)
     n_pixels = np.zeros(model.n_classes)
 
-    average_fw = []
-    
-    for inp, ann in tqdm(zip(inp_images, annotations)):
-        pr = predict(model, inp)
+    # average_fw = []
+    t0 = time.time()
+    for inp, ann in zip(inp_images, annotations):
+        pr, _ = predict(model, inp)
         gt = get_segmentation_array(ann, model.n_classes,  model.output_width, model.output_height, no_reshape=True)
         gt = gt.argmax(-1)
-        average_fw.append(weighted_F(gt, pr))
+        # average_fw.append(weighted_F(gt, pr))
         pr = pr.flatten()
         gt = gt.flatten()
         for cl_i in range(model.n_classes):
@@ -215,10 +216,9 @@ def evaluate(model=None, inp_images=None, annotations=None, inp_images_dir=None,
             fp[cl_i] += np.sum((pr == cl_i) * (gt != cl_i))
             fn[cl_i] += np.sum((pr != cl_i) * (gt == cl_i))
             n_pixels[cl_i] += np.sum(gt == cl_i)
-            
     cl_wise_score = tp / (tp + fp + fn + 0.000000000001)
     n_pixels_norm = n_pixels / np.sum(n_pixels)
     frequency_weighted_IU = np.sum(cl_wise_score*n_pixels_norm)
     mean_IU = np.mean(cl_wise_score)
-    mean_fw = np.mean(average_fw)
-    return {"frequency_weighted_IU":frequency_weighted_IU, "average fw":mean_fw , "mean_IU":mean_IU , "class_wise_IU":cl_wise_score}
+    # mean_fw = np.mean(average_fw)
+    return {"frequency_weighted_IU": frequency_weighted_IU, "mean_IU": mean_IU, "class_wise_IU": cl_wise_score}

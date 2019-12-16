@@ -3,6 +3,7 @@ import numpy as np
 from scipy import misc
 from data_generator import *
 import cv2
+import os
 
 def test_ensemble(model_arch=None, n_classes=8, save_folder='ensemble_default/', testing_path='myers/testing/', training_path='myers/training/', save_file='model_bayesian_default{}.h5', train_again=False, weights=[0.15, 1, 1, 1, 1, 1, 1, 1]):
     N = 5  # Nb modèles ensemblistes
@@ -13,7 +14,7 @@ def test_ensemble(model_arch=None, n_classes=8, save_folder='ensemble_default/',
                         train_annotations=training_path + "label/",
                         checkpoints_path="/tmp/vgg_unet_1", epochs=5,
                         verify_dataset=False,
-                        weights=weights)
+                        weighted_loss=weights)
 
             if not os.path.exists('model_saved/' + save_folder):
                 os.mkdir('model_saved/' + save_folder)
@@ -72,14 +73,15 @@ def test_ensemble(model_arch=None, n_classes=8, save_folder='ensemble_default/',
         ax.imshow(variation_ratio, vmin=0, vmax=1)
         plt.show()
 
-def test_bayesian(model_arch=None, n_classes=8, testing_path='myers/testing/', training_path='myers/training/', save_file= 'model_bayesian_default.h5', train_again=False, weights=[0.15, 1, 1, 1, 1, 1, 1, 1]):
+def test_bayesian(model_arch=None, n_classes=8, testing_path='myers/testing/', training_path='myers/training/',
+                  save_file= 'model_bayesian_default.h5', train_again=False, weights=[0.15, 1, 1, 1, 1, 1, 1, 1]):
     if train_again:
         model = model_arch(n_classes=n_classes, input_height=224, input_width=224, bayesian=True)
         model.train(train_images=training_path+"image/",
                     train_annotations=training_path+"label/",
                     checkpoints_path="/tmp/vgg_unet_1", epochs=5,
                     verify_dataset=False,
-                    weights=weights)
+                    weighted_loss=weights)
         model.save_weights('model_saved/'+save_file)
     else:
         model = model_arch(n_classes=8, input_height=224, input_width=224, bayesian=True)
@@ -144,7 +146,7 @@ def test_common(model_arch=None, testing_path='myers/testing/', training_path='m
                     train_annotations=training_path + "label/",
                     checkpoints_path="/tmp/vgg_unet_1", epochs=5,
                     verify_dataset=False,
-                    weights=weights)
+                    weighted_loss=weights)
         model.save_weights('model_saved/' + save_file)
     else:
         model = model_arch(n_classes=8, input_height=224, input_width=224)

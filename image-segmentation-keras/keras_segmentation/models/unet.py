@@ -65,6 +65,7 @@ def unet_mini(n_classes, input_height=360, input_width=480):
 
 def _unet(n_classes, encoder, l1_skip_conn=True, input_height=416,
           input_width=608, bayesian=False):
+    print('Ceci est le modèle bayésien', bayesian)
     img_input, levels = encoder(
         input_height=input_height, input_width=input_width)
     [f1, f2, f3, f4, f5] = levels
@@ -116,7 +117,6 @@ def _unet(n_classes, encoder, l1_skip_conn=True, input_height=416,
     return model
 
 def unet(n_classes, input_height=416, input_width=608, encoder_level=3, bayesian=False):
-
     model = _unet(n_classes, vanilla_encoder,
                   input_height=input_height, input_width=input_width, bayesian=bayesian)
     model.model_name = "unet"
@@ -135,7 +135,6 @@ def resnet50_unet(n_classes, input_height=416, input_width=608,
                   input_height=input_height, input_width=input_width, bayesian=bayesian)
     model.model_name = "resnet50_unet"
     return model
-
 
 def mobilenet_unet(n_classes, input_height=224, input_width=224,
                    encoder_level=3, bayesian=False):

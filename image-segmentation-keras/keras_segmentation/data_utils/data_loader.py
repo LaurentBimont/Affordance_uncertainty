@@ -23,7 +23,6 @@ random.seed(DATA_LOADER_SEED)
 class_colors = [(random.randint(0, 255), random.randint(
     0, 255), random.randint(0, 255)) for _ in range(5000)]
 
-
 class DataLoaderError(Exception):
     pass
 
@@ -63,6 +62,37 @@ def get_pairs_from_paths(images_path, segs_path, ignore_non_matching=False):
             # Error out
             raise DataLoaderError("No corresponding segmentation found for image {0}.".format(image_full_path))
 
+    return return_value
+
+
+def get_pairs_from_file(file_path, ignore_non_matching=False):
+    ACCEPTABLE_IMAGE_FORMATS = [".jpg", ".jpeg", ".png"]
+    ACCEPTABLE_SEGMENTATION_FORMATS = [".png"]
+
+    image_files = []
+    segmentation_files = {}
+
+    f = open(file_path, 'r')
+    ma_liste = f.readlines()
+
+    for file_name in ma_liste:
+        file_name, file_extension = os.path.splitext('myers/training/image/'+file_name.rstrip('\n'))
+        image_files.append((file_name, file_extension, file_name+file_extension))
+        if file_name in segmentation_files:
+            raise DataLoaderError(
+                "Segmentation file with filename {0} already exists and is ambiguous to resolve with path {1}. Please remove or rename the latter.")
+        segmentation_files[file_name] = (file_extension, os.path.join(file_name+file_extension))
+    return_value = []
+
+    # Match the images and segmentations
+    for image_file, _, image_full_path in image_files:
+        if image_file in segmentation_files:
+            return_value.append((image_full_path, segmentation_files[image_file][1]))
+        elif ignore_non_matching:
+            continue
+        else:
+            # Error out
+            raise DataLoaderError("No corresponding segmentation found for image {0}.".format(image_full_path))
     return return_value
 
 
@@ -127,9 +157,12 @@ def get_segmentation_array(image_input, nClasses, width, height, no_reshape=Fals
     return seg_labels
 
 
-def verify_segmentation_dataset(images_path, segs_path, n_classes, show_all_errors=False):
+def verify_segmentation_dataset(images_path, segs_path, n_classes, show_all_errors=False, from_file=None):
     try:
-        img_seg_pairs = get_pairs_from_paths(images_path, segs_path)
+        if from_file is None:
+            img_seg_pairs = get_pairs_from_paths(images_path, segs_path)
+        else:
+            img_seg_pairs = get_pairs_from_file(from_file)
         if not len(img_seg_pairs):
             print("Couldn't load any data from images_path: {0} and segmentations path: {1}".format(images_path, segs_path))
             return False
@@ -167,12 +200,15 @@ def verify_segmentation_dataset(images_path, segs_path, n_classes, show_all_erro
 def image_segmentation_generator(images_path, segs_path, batch_size,
                                  n_classes, input_height, input_width,
                                  output_height, output_width,
-                                 do_augment=False):
-
-    img_seg_pairs = get_pairs_from_paths(images_path, segs_path)
+                                 do_augment=False, from_file=None):
+    if from_file is not None:
+        print(from_file)
+        img_seg_pairs = get_pairs_from_file(from_file)
+    else:
+        img_seg_pairs = get_pairs_from_paths(images_path, segs_path)
+    print(img_seg_pairs)
     random.shuffle(img_seg_pairs)
     zipped = itertools.cycle(img_seg_pairs)
-
     while True:
         X = []
         Y = []
@@ -180,7 +216,6 @@ def image_segmentation_generator(images_path, segs_path, batch_size,
             im, seg = next(zipped)
             im = cv2.imread(im, 1)
             seg = cv2.imread(seg, 1)
-
             if do_augment:
                 im, seg[:, :, 0] = augment_seg(im, seg[:, :, 0])
 
@@ -190,3 +225,12 @@ def image_segmentation_generator(images_path, segs_path, batch_size,
                 seg, n_classes, output_width, output_height))
 
         yield np.array(X), np.array(Y)
+
+def image_generator(X, Y, batch_size):
+    X_batch, Y_batch = [], []
+    while True:
+        for _ in range(batch_size):
+            n = np.random.randint(X.shape[0])
+            X_batch.append(X[n])
+            Y_batch.append(Y[n])
+        yield np.array(X_batch), np.array(Y_batch)

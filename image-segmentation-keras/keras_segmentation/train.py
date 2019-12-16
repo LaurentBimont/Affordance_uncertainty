@@ -1,7 +1,7 @@
 import argparse
 import json
 from .data_utils.data_loader import image_segmentation_generator, \
-    verify_segmentation_dataset
+    verify_segmentation_dataset, image_generator
 import os
 import glob
 import six
@@ -35,7 +35,7 @@ def train(model,
           input_height=None,
           input_width=None,
           n_classes=None,
-          verify_dataset=True,
+          verify_dataset=False,
           checkpoints_path=None,
           epochs=5,
           batch_size=2,
@@ -47,8 +47,9 @@ def train(model,
           load_weights=None,
           steps_per_epoch=512,
           optimizer_name='adadelta',
-          weights=None,
-          nb_classes=8
+          weighted_loss=None,
+          nb_classes=8,
+          from_file=None
           ):
 
     from .models.all_models import model_from_name
@@ -61,7 +62,6 @@ def train(model,
                 n_classes, input_height=input_height, input_width=input_width)
         else:
             model = model_from_name[model](n_classes)
-
     n_classes = model.n_classes
     input_height = model.input_height
     input_width = model.input_width
@@ -72,13 +72,13 @@ def train(model,
         assert val_annotations is not None
 
     if optimizer_name is not None:
-        if weights is None:
+        if weighted_loss is None:
             model.compile(loss='categorical_crossentropy',
                          optimizer=optimizer_name,
                          metrics=['accuracy', iou_metric_score])
 
         else:
-            model.compile(loss=weighted_categorical_crossentropy(weights),
+            model.compile(loss=weighted_categorical_crossentropy(weighted_loss),
                           optimizer=optimizer_name,
                           metrics=['accuracy', iou_metric_score])
 
@@ -112,15 +112,15 @@ def train(model,
             print("Verifying validation dataset")
             verified = verify_segmentation_dataset(val_images, val_annotations, n_classes)
             assert verified
-
+    print('from file', from_file)
     train_gen = image_segmentation_generator(
         train_images, train_annotations,  batch_size,  n_classes,
-        input_height, input_width, output_height, output_width)
+        input_height, input_width, output_height, output_width, from_file=from_file)
 
     if validate:
         val_gen = image_segmentation_generator(
             val_images, val_annotations,  val_batch_size,
-            n_classes, input_height, input_width, output_height, output_width)
+            n_classes, input_height, input_width, output_height, output_width, from_file, from_file=from_file)
 
     if not validate:
         for ep in range(epochs):

@@ -83,7 +83,7 @@ def get_segmentation_model(input, output):
         input_width = i_shape[2]
         n_classes = o_shape[3]
         o = (Reshape((output_height*output_width, -1)))(o)
-    print('Nombre de classe : ', n_classes)
+
     o = (Activation('softmax'))(o)
     model = Model(img_input, o)
     model.output_width = output_width
@@ -99,7 +99,6 @@ def get_segmentation_model(input, output):
     model.evaluate_segmentation = MethodType(evaluate, model)
     model.predict_bayesian = MethodType(predict_bayesian, model)
     model.predict_ensembliste = MethodType(predict_ensembliste, model)
-
     return model
 
 

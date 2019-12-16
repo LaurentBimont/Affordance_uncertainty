@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import numpy as np
 from scipy import misc
-# import scipy.io
+import scipy.io
 # import skimage.transform as trans
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -61,6 +61,43 @@ def create_folder(training=True):
     plt.imshow(lab)
     plt.show()
     return
+
+
+def create_active_files():
+    pool = open('myers/active_learning/pool.txt', 'w')
+    evaluation = open('myers/active_learning/evaluation.txt', 'w')
+    labeled = open('myers/active_learning/labeled.txt', 'w')
+
+    for file in os.listdir('myers/training/image/'):
+        n = np.random.random()
+        if n < 0.1:
+            labeled.write(file+'\n')
+        elif n<0.35:
+            pool.write(file+'\n')
+        else:
+            evaluation.write(file+'\n')
+
+
+def create_active_folders():
+    rule = open('myers/part-affordance-dataset/active_learning_evaluation.txt', 'r')
+    lines = rule.readlines()
+    repo_names = ['labeled/', 'pool/', 'evaluation/']
+    num = 0
+    for line in lines:
+        print(line)
+        line = line.rstrip('\n').split(' ')
+        directory = 'myers/part-affordance-dataset/tools/{}'.format(line[1])
+        for file in os.listdir(directory):
+            filename = os.fsdecode(file)
+            if filename.endswith(".jpg"):
+                im = misc.imread(directory + '/' + filename)
+                lab = scipy.io.loadmat(directory + '/' + filename.replace('_rgb.jpg', '_label.mat'))['gt_label']
+                new_lab = np.zeros((lab.shape[0], lab.shape[1], 3), dtype=np.uint8)
+                new_lab[:, :, 2], new_lab[:, :, 1], new_lab[:, :, 0] = lab, lab, lab
+                misc.toimage(im, cmin=0.0, cmax=...).save('myers/active_learning/{}image/im_{}.png'.format(repo_names[int(line[0])-1], num))
+                misc.toimage(new_lab, cmin=0.0, cmax=...).save('myers/active_learning/{}label/im_{}.png'.format(repo_names[int(line[0])-1], num))
+                num += 1
+
 
 def adjustData(img, mask, flag_multi_class, num_class):
     if (flag_multi_class):
@@ -192,7 +229,9 @@ data_gen_args = dict(rotation_range=0.2,
                     fill_mode='nearest')
 
 if __name__=="__main__":
-    create_folder(training=False)
-    myTrainGen = trainGenerator(5, 'myers/training/', 'image', 'label', data_gen_args)
-    mes_poids = weight_creation(myTrainGen)
-    print(mes_poids)
+    create_active_files()
+    # create_active_folders()
+    # create_folder(training=False)
+    # myTrainGen = trainGenerator(5, 'myers/training/', 'image', 'label', data_gen_args)
+    # mes_poids = weight_creation(myTrainGen)
+    # print(mes_poids)
